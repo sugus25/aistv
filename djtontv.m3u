@@ -1,4 +1,4 @@
-#EXTM3U url=""
+#EXTM3U url="https://raw.githubusercontent.com/sugus25/aistv/refs/heads/main/djtontv.m3u"
 
 #EXTINF:-1 tvg-chno="1" tvg-id="iptv36.nbt" group-title="Thai Free TV" tvg-logo="https://iptv36.vercel.app/logo/nbt.png?v=4",NBT FHD
 https://cdn-edge.iiptvcdn.com/live_event/smil:1180-0c9c-ad1f-4e5d-aa48.smil/playlist.m3u8
