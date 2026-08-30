@@ -6,6 +6,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IPTV Player">
+  <!-- ✅ HLS + DASH (.mpd) — เก็บแค่เวอร์ชันล่าสุด -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/shaka-player@4.13.0/dist/shaka-player.compiled.js"></script>
   <meta name="description" content="M7Play_DARK">
   
   <!-- ✅ ไอคอน (ถ้ายังไม่มี ใช้สิ่งนี้ไปก่อนได้เลย) -->
@@ -186,13 +189,18 @@
   
   .player-bar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:14px 20px;background:var(--panel);border-top:1px solid var(--line)}
   
-  .vlc-btn, .ext-btn, .win-btn, .copy-btn { border:0; border-radius:8px; padding:9px 16px; font-size:14px; font-weight:700; color:#fff;}
+  .vlc-btn, .ext-btn, .win-btn,.extApp-btn, .copy-btn { border:0; border-radius:8px; padding:9px 16px; font-size:14px; font-weight:700; color:#fff;}
   .vlc-btn{background:var(--seven-orange);} 
   .win-btn{background:#3b82f6;}
+  .ext-btn{background:linear-gradient(135deg, #7c3aed, #5b21b6);}
   .copy-btn{background:rgba(255,255,255,0.1); border:1px solid var(--line); font-weight:500;}
   
   .vlc-note{padding:12px 20px;font-size:13px;color:var(--muted);background:var(--panel2);border-top:1px solid var(--line);line-height:1.6}
   .vlc-note b{color:var(--seven-orange)}
+  .vlc-btn, .ext-btn,.extApp-btn, .copy-btn { border-radius:8px; padding:9px 16px; font-size:14px; font-weight:700; color:#fff;flex:1;min-width:110px;}
+  .vlc-btn{background:var(--seven-orange);} 
+  .extApp-btn{background:linear-gradient(135deg, #7c3aed, #5b21b6);}
+  .copy-btn{background:rgba(255,255,255,0.1); border:1px solid var(--line); font-weight:500;}
   
   .trk-wrap{display:flex;align-items:center;gap:10px}
   .trk-lbl{font-size:14px;color:var(--muted);font-weight:700;}
@@ -281,8 +289,9 @@
     <video id="video" controls="" playsinline="" controlslist="nodownload noremoteplayback" disablepictureinpicture="" oncontextmenu="return false"></video>
     <div class="player-bar" id="playerBar">
       <button class="vlc-btn" id="vlcBtn">🎬 เปิดใน DrmPlayer</button>
-      <button class="ext-btn" id="extBtn" style="background:#ea4335;">📱 Yamby</button>
+      <button class="ext-btn" id="yambyBtn" style="background:#ea4335;">📱 Yamby</button>
       <button class="win-btn" id="mxBtn">🖥️ เปิดใน MxPlayer</button>
+      <button class="extApp-btn" id="extAppBtn">🖥️ เปิดใน แอปอื่น</button>
       <button class="copy-btn" id="copyBtn">📋 คัดลอกลิงก์</button>
       
       <div class="trk-wrap" id="audioWrap">
@@ -305,6 +314,7 @@
 
 <script>
 "use strict";
+
 if(window.shaka && shaka.polyfill) shaka.polyfill.installAll();
 
 /* ---------------- Hardcoded URL ---------------- */
@@ -492,6 +502,22 @@ async function loadAllM3U() {
       parseM3UContent(text, i);
     }
   }
+}
+
+function parseJsonContent(data, srcIndex) {
+  if(!Array.isArray(data)) return;
+  data.forEach(item => {
+    if(!item) return;
+    if(item.groups && Array.isArray(item.groups)) {
+      item.groups.forEach(g => {
+        if(g.stations && Array.isArray(g.stations)) {
+          g.stations.forEach(s => addItem(s.name, s.url || s.stream, s.image || g.image, g.name, srcIndex));
+        }
+      });
+    } else if(item.url || item.stream) {
+      addItem(item.name, item.url || item.stream, item.image, item.group || "อื่นๆ", srcIndex);
+    }
+  });
 }
 
 function parseM3UContent(text, srcIndex) {
@@ -925,7 +951,7 @@ $("vlcBtn").onclick = ()=>{
 };
 
 // 2. ปุ่ม "📱 Google yamby" (แอปอื่น)
-$("extBtn").onclick = ()=>{
+$("yambyBtn").onclick = ()=>{
   if(!S.currentSrc) return;
   if (isAndroid) {
     openProtocol(getAndroidIntent("com.hush.yamby"));
@@ -943,7 +969,15 @@ $("mxBtn").onclick = ()=>{
     openProtocol(S.currentSrc);
   }
 };
-
+// 4. ปุ่ม🖥️ เปิดใน แอปอื่น"
+$("extAppBtn").onclick = () => {
+  if(!S.currentUrl) return ;
+  if (isAndroid) {
+    openProtocol(getAndroidIntent("io.github.muntashirakon.AppManager"));
+  } else {
+    openProtocol(S.currentSrc);
+  }
+};
 // 4. ปุ่ม "📋 คัดลอกลิงก์"
 $("copyBtn").onclick=async()=>{ 
   try{ 
@@ -954,6 +988,8 @@ $("copyBtn").onclick=async()=>{
   } 
 };
 
+try { S.m3uLinks = JSON.parse(localStorage.getItem("m7_m3u")||"[]"); loadAllM3U().then(()=>renderCats()); }
+catch(e){}
 </script>
 
 
